@@ -17,11 +17,30 @@ def process(leftcsv, rightcsv, similiarity):
   print(f'Fitting vectorizer...')
   tf_idf_matrix = vectorizer.fit_transform(names)
   print(f'Generating matches...')
-  matches = awesome_cossim_top(tf_idf_matrix, tf_idf_matrix.transpose(), 10, similiarity)
+  matches = scipy_cossim_top(tf_idf_matrix, tf_idf_matrix.transpose(), 10, similiarity)
   print(f'Generating df...')
   result = get_matches_df(matches, names, top=None)
   print(result.loc[(result['left_side'].isin(right_names['Name']) & (result['left_side'] != result['right_side']))].drop_duplicates())
   return result.loc[(result['left_side'].isin(right_names['Name']) & (result['left_side'] != result['right_side']))].drop_duplicates()
+
+def get_csr_ntop_idx_data(csr_row, ntop):
+    """
+    Get list (row index, score) of the n top matches
+    """
+    nnz = csr_row.getnnz()
+    if nnz == 0:
+        return None
+    elif nnz <= ntop:
+        result = zip(csr_row.indices, csr_row.data)
+    else:
+        arg_idx = np.argpartition(csr_row.data, -ntop)[-ntop:]
+        result = zip(csr_row.indices[arg_idx], csr_row.data[arg_idx])
+
+    return sorted(result, key=lambda x: -x[1])
+
+def scipy_cossim_top(A, B, ntop, lower_bound=0):
+    C = A.dot(B)
+    return C
 
 def ngrams(string, n=3):
     string = re.sub(r'[,-./]',r'', string)
