@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "string-matching-cli"
+version = "0.1.0"
+description = ""
+authors = ["Jack Keenan <keenan.jack3@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+click = "^7.1.2"
+funcy = "^1.14"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
