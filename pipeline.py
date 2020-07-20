@@ -3,7 +3,6 @@ import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 from scipy.sparse import csr_matrix
-import sparse_dot_topn.sparse_dot_topn as ct
 from utils import progressBar
 
 def process(leftcsv, rightcsv, similiarity):
@@ -47,34 +46,6 @@ def ngrams(string, n=3):
     ngrams = zip(*[string[i:] for i in range(n)])
     return [''.join(ngram) for ngram in ngrams]
 
-def awesome_cossim_top(A, B, ntop, lower_bound=0):
-    # force A and B as a CSR matrix.
-    # If they have already been CSR, there is no overhead
-    A = A.tocsr()
-    B = B.tocsr()
-    M, _ = A.shape
-    _, N = B.shape
-
-    idx_dtype = np.int32
-
-    nnz_max = M*ntop
-
-    indptr = np.zeros(M+1, dtype=idx_dtype)
-    indices = np.zeros(nnz_max, dtype=idx_dtype)
-    data = np.zeros(nnz_max, dtype=A.dtype)
-
-    ct.sparse_dot_topn(
-        M, N, np.asarray(A.indptr, dtype=idx_dtype),
-        np.asarray(A.indices, dtype=idx_dtype),
-        A.data,
-        np.asarray(B.indptr, dtype=idx_dtype),
-        np.asarray(B.indices, dtype=idx_dtype),
-        B.data,
-        ntop,
-        lower_bound,
-        indptr, indices, data)
-
-    return csr_matrix((data,indices,indptr),shape=(M,N))
 
 def get_matches_df(sparse_matrix, name_vector, top=100):
     non_zeros = sparse_matrix.nonzero()
