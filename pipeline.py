@@ -54,7 +54,7 @@ def get_matches_df(sparse_matrix, name_vector, top=100):
     if top:
         nr_matches = top
     else:
-        nr_matches = sum([len(listElem) for listElem in sparse_matrix])
+        nr_matches = sum([len(listElem) for listElem in sparse_matrix if listElem])
 
     left_side = np.empty([nr_matches], dtype=object)
     right_side = np.empty([nr_matches], dtype=object)
@@ -63,9 +63,12 @@ def get_matches_df(sparse_matrix, name_vector, top=100):
 
     i = 0
     for index, match in enumerate(sparse_matrix):
-        for entry in match:
-            left_side[i] = name_vector[index]
-            right_side[i] = name_vector[entry[0]]
-            similairity[i] = entry[1]
-            i += 1
+        if match:
+            for entry in match:
+                left_side[i] = name_vector[index]
+                right_side[i] = name_vector[entry[0]]
+                similairity[i] = entry[1]
+                i += 1
+        else:
+            next
     return pd.DataFrame({'actual_name': left_side,'likely_name': right_side,'similairity': similairity})
