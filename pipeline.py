@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from utils import progressBar
 
-def process(leftcsv, rightcsv, similiarity):
+def process(leftcsv, rightcsv, similiarity, ntop):
   print(f'Reading left CSV...')
   left_names = pd.read_csv(leftcsv)
   print(f'Reading right CSV...')
@@ -16,11 +16,13 @@ def process(leftcsv, rightcsv, similiarity):
   print(f'Fitting vectorizer...')
   tf_idf_matrix = vectorizer.fit_transform(names)
   print(f'Generating matches...')
-  matches = scipy_cossim_top(tf_idf_matrix, tf_idf_matrix.transpose(), 10, similiarity)
+  matches = scipy_cossim_top(tf_idf_matrix, tf_idf_matrix.transpose(), ntop, similiarity)
   print(f'Generating df...')
   result = get_matches_df(matches, names, top=None)
-  print(result.loc[(result['left_side'].isin(right_names['Name']) & (result['left_side'] != result['right_side']))].drop_duplicates())
-  return result.loc[(result['left_side'].isin(right_names['Name']) & (result['left_side'] != result['right_side']))].drop_duplicates()
+  non_exact_results = result.loc[(result['actual_name'].isin(right_names['Name']) & (result['actual_name'] != result['likely_name']) & (result['similairity'] >= similiarity))].drop_duplicates()
+  non_exact_results_rejoined = pd.merge(non_exact_results, left_names, left_on='likely_name', right_on='Name', how='left')
+  print(f'Storing df...')
+  return non_exact_results_rejoined.to_csv('output.csv')
 
 def get_csr_ntop_idx_data(csr_row, ntop):
     """
@@ -39,7 +41,7 @@ def get_csr_ntop_idx_data(csr_row, ntop):
 
 def scipy_cossim_top(A, B, ntop, lower_bound=0):
     C = A.dot(B)
-    return C
+    return [get_csr_ntop_idx_data(row, ntop) for row in C]
 
 def ngrams(string, n=3):
     string = re.sub(r'[,-./]',r'', string)
@@ -48,25 +50,22 @@ def ngrams(string, n=3):
 
 
 def get_matches_df(sparse_matrix, name_vector, top=100):
-    non_zeros = sparse_matrix.nonzero()
-
-    sparserows = non_zeros[0]
-    sparsecols = non_zeros[1]
 
     if top:
         nr_matches = top
     else:
-        nr_matches = sparsecols.size
+        nr_matches = sum([len(listElem) for listElem in sparse_matrix])
 
     left_side = np.empty([nr_matches], dtype=object)
     right_side = np.empty([nr_matches], dtype=object)
     similairity = np.zeros(nr_matches)
 
-    for index in progressBar(range(0, nr_matches)):
-        left_side[index] = name_vector[sparserows[index]]
-        right_side[index] = name_vector[sparsecols[index]]
-        similairity[index] = sparse_matrix.data[index]
 
-    return pd.DataFrame({'left_side': left_side,
-                          'right_side': right_side,
-                           'similairity': similairity})
+    i = 0
+    for index, match in enumerate(sparse_matrix):
+        for entry in match:
+            left_side[i] = name_vector[index]
+            right_side[i] = name_vector[entry[0]]
+            similairity[i] = entry[1]
+            i += 1
+    return pd.DataFrame({'actual_name': left_side,'likely_name': right_side,'similairity': similairity})
