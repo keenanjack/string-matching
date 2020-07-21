@@ -22,7 +22,7 @@ def process(leftcsv, rightcsv, similiarity, ntop):
   non_exact_results = result.loc[(result['actual_name'].isin(right_names['Name']) & (result['actual_name'] != result['likely_name']) & (result['similairity'] >= similiarity))].drop_duplicates()
   non_exact_results_rejoined = pd.merge(non_exact_results, left_names, left_on='likely_name', right_on='Name', how='left')
   print(f'Storing df...')
-  return non_exact_results_rejoined.to_csv('output.csv')
+  return non_exact_results_rejoined.to_csv('data/output.csv')
 
 def get_csr_ntop_idx_data(csr_row, ntop):
     """
